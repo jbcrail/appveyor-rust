@@ -1,25 +1,30 @@
+platform:
+  - x64
+
 environment:
   global:
     MSYS2_BASEVER: 20150512
+    MBASH: msys64\usr\bin\sh --login -c
+    PMOPTS: -S --needed --noconfirm --noprogressbar
 
   matrix:
   - TARGET: x86_64-pc-windows-msvc
-    MSYS2_ARCH: x86_64
+    MBITS: 64
+    MPREF: x86_64
   - TARGET: i686-pc-windows-gnu
-    MSYS2_ARCH: i686
+    MBITS: 32
+    MPREF: i686
 
 install:
-  - appveyor DownloadFile "http://kent.dl.sourceforge.net/project/msys2/Base/%MSYS2_ARCH%/msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar.xz" -FileName "msys2.tar.xz"
+  - appveyor DownloadFile "http://kent.dl.sourceforge.net/project/msys2/Base/x86_64/msys2-base-x86_64-%MSYS2_BASEVER%.tar.xz" -FileName "msys2.tar.xz"
   - 7z x msys2.tar.xz
   - 7z x msys2.tar > NUL
-  - msys64\msys2_shell.bat
-  - pacman -Sy
-  - pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime
-  - pacman -S mingw-w64-%MSYS2_ARCH%-toolchain
-  - pacman -S base-devel
-  - exit
-  - msys64\msys2_shell.bat
-  - pacman -Su
+  - call %MBASH% ""
+  - call %MBASH% "pacman -Sy; pacman $PMOPTS bash pacman pacman-mirrors msys2-runtime"
+  - call %MBASH% "pacman -Syu --noconfirm"
+  - call %MBASH% "pacman $PMOPTS diffutils findutils make patch tar automake autoconf"
+  - call %MBASH% "pacman $PMOPTS mingw-w64-$MPREF-toolchain"
+  - call %MBASH% "pacman $PMOPTS base-devel"
   - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe"
   - rust-nightly-%TARGET%.exe /VERYSILENT /NORESTART /DIR="C:\Program Files (x86)\Rust"
   - call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat" amd64
@@ -27,10 +32,9 @@ install:
   - SET PATH=%PATH%;C:\MinGW\bin
   - rustc -V
   - cargo -V
-  - make -v
 
 build_script:
-  - make
+  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; make"
 
 test_script:
-  - make test
+  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; make test"
