@@ -1,0 +1,42 @@
+platform:
+  - x64
+
+environment:
+  global:
+    MSYS2_BASEVER: 20150512
+
+  matrix:
+    - MSYS2_ARCH: x86_64
+      RUST_VERSION: nightly
+      RUST_ARCH: x86_64-pc-windows-msvc
+
+install:
+  - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-%RUST_VERSION%-%RUST_ARCH%.exe"
+  - rust-%RUST_VERSION%-%RUST_ARCH%.exe /VERYSILENT /NORESTART /DIR="C:\Program Files (x86)\Rust"
+  - appveyor DownloadFile "http://kent.dl.sourceforge.net/project/msys2/Base/%MSYS2_ARCH%/msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar.xz" -FileName "msys2.tar.xz"
+  - 7z x msys2.tar.xz
+  - 7z x msys2.tar > NUL
+  - msys64\msys2_shell.bat
+  - pacman -Sy
+  - pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime
+  - pacman -S mingw-w64-%MSYS2_ARCH%-toolchain
+  - pacman -S base-devel
+  - exit
+  - msys64\msys2_shell.bat
+  - pacman -Su
+
+build_script:
+  - msys64\msys2_shell.bat
+  - SET PATH=%PATH%;C:\Program Files (x86)\Rust\bin
+  - SET PATH=%PATH%;C:\MinGW\bin
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - make
+  - rustc -V
+  - cargo -V
+
+test_script:
+  - msys64\msys2_shell.bat
+  - SET PATH=%PATH%;C:\Program Files (x86)\Rust\bin
+  - SET PATH=%PATH%;C:\MinGW\bin
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - make test
