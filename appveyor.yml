@@ -4,27 +4,19 @@ platform:
 environment:
   global:
     MSYS2_BASEVER: 20150512
+    MSYS2_ARCH: x86_64
     MBASH: msys64\usr\bin\sh --login -c
-    PMOPTS: -S --needed --noconfirm --noprogressbar
 
   matrix:
   - TARGET: x86_64-pc-windows-msvc
-    MBITS: 64
-    MPREF: x86_64
   - TARGET: i686-pc-windows-gnu
-    MBITS: 32
-    MPREF: i686
 
 install:
-  - appveyor DownloadFile "http://kent.dl.sourceforge.net/project/msys2/Base/x86_64/msys2-base-x86_64-%MSYS2_BASEVER%.tar.xz" -FileName "msys2.tar.xz"
+  - appveyor DownloadFile "http://kent.dl.sourceforge.net/project/msys2/Base/%MSYS2_ARCH%/msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar.xz" -FileName "msys2.tar.xz"
   - 7z x msys2.tar.xz
   - 7z x msys2.tar > NUL
   - call %MBASH% ""
-  - call %MBASH% "pacman -Sy; pacman $PMOPTS bash pacman pacman-mirrors msys2-runtime"
-  - call %MBASH% "pacman -Syu --noconfirm"
-  - call %MBASH% "pacman $PMOPTS diffutils findutils make patch tar automake autoconf"
-  - call %MBASH% "pacman $PMOPTS mingw-w64-$MPREF-toolchain"
-  - call %MBASH% "pacman $PMOPTS base-devel"
+  - call %MBASH% "for i in {1..3}; do pacman --noconfirm -Suy mingw-w64-%MSYS2_ARCH%-{ragel,freetype,icu,gettext} libtool pkg-config gcc make autoconf automake perl && break || sleep 15; done"
   - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe"
   - rust-nightly-%TARGET%.exe /VERYSILENT /NORESTART /DIR="C:\Program Files (x86)\Rust"
   - call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat" amd64
@@ -34,7 +26,7 @@ install:
   - cargo -V
 
 build_script:
-  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; make"
+  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; PATH=$PATH:/mingw64/bin:/mingw32/bin; exec 0</dev/null; make"
 
 test_script:
-  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; make test"
+  - call %MBASH% "cd $APPVEYOR_BUILD_FOLDER; PATH=$PATH:/mingw64/bin:/mingw32/bin; exec 0</dev/null; make test"
